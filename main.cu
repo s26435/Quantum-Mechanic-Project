@@ -1,9 +1,5 @@
 #include <cuda_runtime.h>
-#include <cstdlib>
-#include <complex>
-#include <vector>
 #include <iostream>
-#include <type_traits>
 
 
 #define CHECK_CUDA(call)                                                                                                \
@@ -236,15 +232,46 @@ public:
         }
         return *this;
     }
-
-    __host__ void print_tensor()
-    {
-        for (int i = 0; i < this->numel(); i++)
-        {
-            std::cout << "Tensor[" << i << "] = " << this->data[i] << std::endl;
-        }
-    }
 };
+
+template<class T>
+std::ostream& operator<<(std::ostream& os, const tensor<T>& t) {
+    int n = t.numel();
+    const T* p = t.raw();
+
+    if (t.n_dim == 1) {
+        os << "[";
+        for (int i = 0; i < t.shape[0]; ++i) {
+            os << p[i];
+            if (i + 1 < t.shape[0]) os << ", ";
+        }
+        os << "]";
+        return os;
+    }
+
+    if (t.n_dim == 2) {
+        int M = t.shape[0], N = t.shape[1];
+        os << "[\n";
+        for (int r = 0; r < M; ++r) {
+            os << "  [";
+            for (int c = 0; c < N; ++c) {
+                os << p[r * N + c];
+                if (c + 1 < N) os << ", ";
+            }
+            os << "]";
+            if (r + 1 < M) os << ",";
+            os << "\n";
+        }
+        os << "]";
+        return os;
+    }
+    os << "tensor(shape=[";
+    for (int d = 0; d < t.n_dim; ++d) {
+        os << t.shape[d] << (d + 1 < t.n_dim ? "," : "");
+    }
+    os << "], numel=" << n << ")";
+    return os;
+}
 
 template <class T>
 __global__ void tensor_mul_kernel1D(const T *a, const T *b, T *out, size_t n)
@@ -393,7 +420,7 @@ int main(int argv, char **argc)
     tensor<complx> b = tensor<complx>(n_dim, shape_b, data_b);
     tensor<complx> c = mul_cuda<complx>(a, b);
 
-    c.print_tensor();
+    std::cout << c << std::endl;
 
     free(shape_a);
     free(shape_b);
