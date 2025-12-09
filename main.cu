@@ -50,7 +50,37 @@ struct complx
         return complx((real * o.real + imag * o.imag) / denom,
                       (imag * o.real - real * o.imag) / denom);
     }
+
+    __host__ __device__
+    complx& operator+=(const complx& o) {
+        real += o.real;
+        imag += o.imag;
+        return *this;
+    }
+
+    __host__ __device__
+    complx& operator-=(const complx& o) {
+        real -= o.real;
+        imag -= o.imag;
+        return *this;
+    }
+
+    __host__ __device__
+    complx& operator*=(const complx& o) {
+        float r = real * o.real - imag * o.imag;
+        float i = real * o.imag + imag * o.real;
+        real = r;
+        imag = i;
+        return *this;
+    }
 };
+
+inline std::ostream& operator<<(std::ostream& os, const complx& z) {
+    os << z.real;
+    if (z.imag >= 0) os << " + " << z.imag << "i";
+    else             os << " - " << -z.imag << "i";
+    return os;
+}
 
 template <class T>
 class tensor
@@ -338,7 +368,7 @@ int main(int argv, char **argc)
 {
     int n_dim = 2;
     int *shape_a, *shape_b;
-    float *data_a, *data_b;
+    complx *data_a, *data_b;
 
     shape_a = (int *)malloc(n_dim * sizeof(int));
     shape_b = (int *)malloc(n_dim * sizeof(int));
@@ -353,15 +383,15 @@ int main(int argv, char **argc)
         shape_b[i] = 2;
     }
 
-    data_a = (float *)malloc(4 * sizeof(float));
-    data_b = (float *)malloc(4 * sizeof(float));
+    data_a = (complx *)malloc(4 * sizeof(complx));
+    data_b = (complx *)malloc(4 * sizeof(complx));
 
-    init_data(data_a, 4, 1.0f);
-    init_data(data_b, 4, 1.0f);
+    init_data<complx>(data_a, 4, complx(1, 1));
+    init_data<complx>(data_b, 4, complx(1, 1));
 
-    tensor<float> a = tensor<float>(n_dim, shape_a, data_a);
-    tensor<float> b = tensor<float>(n_dim, shape_b, data_b);
-    tensor<float> c = mul_cuda<float>(a, b);
+    tensor<complx> a = tensor<complx>(n_dim, shape_a, data_a);
+    tensor<complx> b = tensor<complx>(n_dim, shape_b, data_b);
+    tensor<complx> c = mul_cuda<complx>(a, b);
 
     c.print_tensor();
 
